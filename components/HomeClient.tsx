@@ -116,6 +116,31 @@ export function HomeClient() {
     [updateSlide],
   );
 
+  const handleImageUpload = useCallback(
+    (
+      index: number,
+      field: "subjectUrl" | "cutoutLeftUrl" | "cutoutRightUrl",
+      file: File,
+    ) => {
+      const url = URL.createObjectURL(file);
+      updateSlide(index, (slide) => ({ ...slide, [field]: url }));
+    },
+    [updateSlide],
+  );
+
+  const handleImageRemove = useCallback(
+    (
+      index: number,
+      field: "subjectUrl" | "cutoutLeftUrl" | "cutoutRightUrl",
+    ) => {
+      updateSlide(index, (slide) => ({
+        ...slide,
+        [field]: undefined,
+      }));
+    },
+    [updateSlide],
+  );
+
   const activeSlide = useMemo(
     () => (project ? project.slides[activeIndex] : null),
     [project, activeIndex],
@@ -219,6 +244,8 @@ export function HomeClient() {
             onLogoUpload={handleLogoUpload}
             onBackgroundUpload={handleBackgroundUpload}
             onResetBackground={resetBackground}
+            onImageUpload={handleImageUpload}
+            onImageRemove={handleImageRemove}
           />
         </aside>
       </div>

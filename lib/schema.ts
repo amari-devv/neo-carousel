@@ -10,10 +10,14 @@ export const contentSlideSchema = z.object({
   category: z.string(),
   headlineTop: z.string(),
   headlineBottom: z.string(),
-  bullets: z.array(bulletSchema).length(3),
+  bullets: z.array(bulletSchema).max(3),
   backgroundUrl: z.string().optional(),
+  /** @deprecated use cutoutLeftUrl / cutoutRightUrl */
   cutoutUrls: z.array(z.string()).max(2).optional(),
+  cutoutLeftUrl: z.string().optional(),
+  cutoutRightUrl: z.string().optional(),
   subjectUrl: z.string().optional(),
+  slideIcons: z.array(z.string()).max(4).optional(),
 });
 
 export const summarySlideSchema = z.object({
@@ -24,6 +28,7 @@ export const summarySlideSchema = z.object({
   ctaText: z.string().optional(),
   backgroundUrl: z.string().optional(),
   subjectUrl: z.string().optional(),
+  slideIcons: z.array(z.string()).max(4).optional(),
 });
 
 export const slideSchema = z.discriminatedUnion("type", [
@@ -79,12 +84,15 @@ export type GptCarouselResponse = z.infer<typeof gptCarouselResponseSchema>;
 
 export const DEFAULT_ACCENT = "#E11D48";
 
-function normalizeBullets(bullets: Bullet[]): [Bullet, Bullet, Bullet] {
-  const normalized = bullets.slice(0, 3);
-  while (normalized.length < 3) {
-    normalized.push({ icon: "check", text: "Add bullet point" });
-  }
-  return normalized as [Bullet, Bullet, Bullet];
+function normalizeBullets(bullets: Bullet[]): Bullet[] {
+  return bullets.slice(0, 3).map((bullet) => ({
+    icon: bullet.icon || "check",
+    text: bullet.text ?? "",
+  }));
+}
+
+export function visibleBullets(bullets: Bullet[]): Bullet[] {
+  return bullets.filter((bullet) => bullet.text.trim().length > 0);
 }
 
 export function createProjectFromGpt(
@@ -130,28 +138,50 @@ export function createProjectFromGpt(
   };
 }
 
+function normalizeContentSlide(slide: Record<string, unknown>): ContentSlide {
+  const cutoutUrls = Array.isArray(slide.cutoutUrls)
+    ? (slide.cutoutUrls as string[])
+    : [];
+
+  return {
+    type: "content",
+    category: String(slide.category ?? ""),
+    headlineTop: String(slide.headlineTop ?? ""),
+    headlineBottom: String(slide.headlineBottom ?? ""),
+    bullets: normalizeBullets(
+      Array.isArray(slide.bullets) ? (slide.bullets as Bullet[]) : [],
+    ),
+    backgroundUrl:
+      typeof slide.backgroundUrl === "string" ? slide.backgroundUrl : undefined,
+    cutoutLeftUrl:
+      typeof slide.cutoutLeftUrl === "string"
+        ? slide.cutoutLeftUrl
+        : cutoutUrls[0],
+    cutoutRightUrl:
+      typeof slide.cutoutRightUrl === "string"
+        ? slide.cutoutRightUrl
+        : cutoutUrls[1],
+    subjectUrl:
+      typeof slide.subjectUrl === "string" ? slide.subjectUrl : undefined,
+    slideIcons: Array.isArray(slide.slideIcons)
+      ? (slide.slideIcons as string[])
+      : undefined,
+  };
+}
+
 /** Normalize legacy projects stored with `mistake` slide type */
 export function normalizeProject(project: CarouselProject): CarouselProject {
   const slides = (project.slides as Array<Slide | Record<string, unknown>>).map(
     (slide) => {
-      if (slide.type !== "mistake") return slide as Slide;
+      if (slide.type === "mistake") {
+        return normalizeContentSlide(slide);
+      }
 
-      return {
-        type: "content" as const,
-        category: String(slide.category ?? ""),
-        headlineTop: String(slide.headlineTop ?? ""),
-        headlineBottom: String(slide.headlineBottom ?? ""),
-        bullets: normalizeBullets(
-          Array.isArray(slide.bullets) ? (slide.bullets as Bullet[]) : [],
-        ),
-        backgroundUrl:
-          typeof slide.backgroundUrl === "string" ? slide.backgroundUrl : undefined,
-        cutoutUrls: Array.isArray(slide.cutoutUrls)
-          ? (slide.cutoutUrls as string[])
-          : undefined,
-        subjectUrl:
-          typeof slide.subjectUrl === "string" ? slide.subjectUrl : undefined,
-      };
+      if (slide.type === "content") {
+        return normalizeContentSlide(slide as Record<string, unknown>);
+      }
+
+      return slide as Slide;
     },
   );
 

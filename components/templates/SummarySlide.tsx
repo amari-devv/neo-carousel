@@ -2,7 +2,7 @@
 import { Bookmark, Check } from "lucide-react";
 import type { Brand, SummarySlide } from "@/lib/schema";
 import { DEFAULT_ACCENT } from "@/lib/schema";
-import { DEFAULT_SUBJECT } from "@/lib/templates";
+import { CarouselIcon } from "@/lib/icons";
 import { LogoDivider } from "./shared/LogoDivider";
 
 type SummarySlideTemplateProps = {
@@ -15,8 +15,9 @@ export function SummarySlideTemplate({
   brand,
 }: SummarySlideTemplateProps) {
   const accent = brand?.accentColor ?? DEFAULT_ACCENT;
-  const subjectUrl = slide.subjectUrl ?? DEFAULT_SUBJECT;
   const ctaText = slide.ctaText ?? "SAVE THIS POST";
+  const checklist = slide.checklist.filter((item) => item.trim().length > 0);
+  const slideIcons = (slide.slideIcons ?? []).filter((icon) => icon !== "none");
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black text-white">
@@ -32,14 +33,32 @@ export function SummarySlideTemplate({
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/95" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.7)_100%)]" />
 
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-        <img
-          src={subjectUrl}
-          alt=""
-          className="h-[680px] w-auto max-w-[80%] object-contain object-bottom drop-shadow-[0_0_40px_rgba(0,0,0,0.8)]"
-          crossOrigin="anonymous"
-        />
-      </div>
+      {slide.subjectUrl && (
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+          <img
+            src={slide.subjectUrl}
+            alt=""
+            className="h-[680px] w-auto max-w-[80%] object-contain object-bottom drop-shadow-[0_0_40px_rgba(0,0,0,0.8)]"
+            crossOrigin="anonymous"
+          />
+        </div>
+      )}
+
+      {slideIcons.length > 0 && (
+        <div className="absolute right-10 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-4">
+          {slideIcons.map((icon, i) => (
+            <div
+              key={`${icon}-${i}`}
+              className={`flex items-center justify-center shadow-lg ${
+                icon === "swipe" ? "rounded-full px-5 py-3" : "rounded-full px-4 py-3"
+              }`}
+              style={{ backgroundColor: accent, border: "3px solid white" }}
+            >
+              <CarouselIcon icon={icon} size="lg" className="text-white" />
+            </div>
+          ))}
+        </div>
+      )}
 
       <div
         className="absolute bottom-0 left-0 right-0 h-[60%]"
@@ -68,19 +87,21 @@ export function SummarySlideTemplate({
           </p>
         </div>
 
-        <div className="mb-10 space-y-3 px-8">
-          {slide.checklist.map((item, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                style={{ backgroundColor: accent }}
-              >
-                <Check className="h-5 w-5 text-white" strokeWidth={3} />
+        {checklist.length > 0 && (
+          <div className="mb-10 space-y-3 px-8">
+            {checklist.map((item, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: accent }}
+                >
+                  <Check className="h-5 w-5 text-white" strokeWidth={3} />
+                </div>
+                <p className="text-[28px] font-medium text-white/95">{item}</p>
               </div>
-              <p className="text-[28px] font-medium text-white/95">{item}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col items-center gap-3">
           <div
