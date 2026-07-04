@@ -30,6 +30,12 @@ cp .env.example .env.local
 OPENAI_API_KEY=sk-...
 ```
 
+Optional — if URL mode hits 403 on some sites, add a [Jina Reader](https://jina.ai/reader) key:
+
+```
+JINA_API_KEY=jina_...
+```
+
 4. Run the dev server:
 
 ```bash
@@ -43,7 +49,8 @@ Open [http://localhost:3000](http://localhost:3000).
 1. Push this repo to GitHub.
 2. Import the project in [Vercel](https://vercel.com).
 3. Add `OPENAI_API_KEY` in Project Settings → Environment Variables.
-4. Deploy.
+4. Optionally add `JINA_API_KEY` for better URL scraping on protected sites.
+5. Deploy.
 
 The included `vercel.json` sets a 30s timeout for API routes (GPT + scrape).
 
