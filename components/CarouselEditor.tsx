@@ -100,8 +100,8 @@ export function CarouselEditor({
         </button>
       </section>
 
-      {slide.type === "mistake" ? (
-        <MistakeFields
+      {slide.type === "content" ? (
+        <ContentFields
           slide={slide}
           onChange={(updater) => onSlideChange(activeIndex, updater)}
         />
@@ -137,11 +137,11 @@ function Field({
   );
 }
 
-function MistakeFields({
+function ContentFields({
   slide,
   onChange,
 }: {
-  slide: Extract<Slide, { type: "mistake" }>;
+  slide: Extract<Slide, { type: "content" }>;
   onChange: (updater: (slide: Slide) => Slide) => void;
 }) {
   return (
@@ -150,11 +150,11 @@ function MistakeFields({
         Slide text
       </h2>
       <Field
-        label="Category"
+        label="Category label"
         value={slide.category}
         onChange={(category) =>
           onChange((s) =>
-            s.type === "mistake" ? { ...s, category } : s,
+            s.type === "content" ? { ...s, category } : s,
           )
         }
       />
@@ -163,7 +163,7 @@ function MistakeFields({
         value={slide.headlineTop}
         onChange={(headlineTop) =>
           onChange((s) =>
-            s.type === "mistake" ? { ...s, headlineTop } : s,
+            s.type === "content" ? { ...s, headlineTop } : s,
           )
         }
       />
@@ -172,7 +172,7 @@ function MistakeFields({
         value={slide.headlineBottom}
         onChange={(headlineBottom) =>
           onChange((s) =>
-            s.type === "mistake" ? { ...s, headlineBottom } : s,
+            s.type === "content" ? { ...s, headlineBottom } : s,
           )
         }
       />
@@ -183,7 +183,7 @@ function MistakeFields({
           value={bullet.text}
           onChange={(text) =>
             onChange((s) => {
-              if (s.type !== "mistake") return s;
+              if (s.type !== "content") return s;
               const bullets = [...s.bullets] as typeof s.bullets;
               bullets[i] = { ...bullets[i], text };
               return { ...s, bullets };

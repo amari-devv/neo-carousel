@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     }
 
     const project = await generateCarouselFromContent(
-      `Create an Instagram carousel about: ${prompt}`,
+      `Create an Instagram carousel about: ${prompt}. Choose the best angle for this topic — do not default to a mistakes format unless it genuinely fits.`,
     );
 
     return NextResponse.json(project);

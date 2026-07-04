@@ -1,4 +1,5 @@
 import type { CarouselProject } from "./schema";
+import { normalizeProject } from "./schema";
 
 const STORAGE_KEY = "neo-carousel-project";
 
@@ -12,7 +13,7 @@ export function loadProject(): CarouselProject | null {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as CarouselProject;
+    return normalizeProject(JSON.parse(raw) as CarouselProject);
   } catch {
     return null;
   }

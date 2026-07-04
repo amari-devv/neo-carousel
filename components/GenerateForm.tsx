@@ -100,7 +100,7 @@ export function GenerateForm({ onGenerated }: GenerateFormProps) {
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. 5 mistakes athletes make with recovery and sleep"
+              placeholder="e.g. the hidden truth about recovery for competitive athletes"
               rows={4}
               required
               className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-white placeholder:text-zinc-600 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"

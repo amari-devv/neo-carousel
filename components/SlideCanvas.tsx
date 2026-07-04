@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 import type { Brand, Slide } from "@/lib/schema";
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "@/lib/templates";
-import { MistakeSlideTemplate } from "./templates/MistakeSlide";
+import { ContentSlideTemplate } from "./templates/ContentSlide";
 import { SummarySlideTemplate } from "./templates/SummarySlide";
 
 type SlideCanvasProps = {
@@ -11,6 +11,10 @@ type SlideCanvasProps = {
   brand?: Brand;
   className?: string;
 };
+
+function isContentSlide(slide: Slide): slide is Extract<Slide, { type: "content" }> {
+  return slide.type === "content";
+}
 
 export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
   function SlideCanvas({ slide, brand, className = "" }, ref) {
@@ -24,8 +28,8 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           flexShrink: 0,
         }}
       >
-        {slide.type === "mistake" ? (
-          <MistakeSlideTemplate slide={slide} brand={brand} />
+        {isContentSlide(slide) ? (
+          <ContentSlideTemplate slide={slide} brand={brand} />
         ) : (
           <SummarySlideTemplate slide={slide} brand={brand} />
         )}

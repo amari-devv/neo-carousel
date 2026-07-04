@@ -4,7 +4,7 @@ Generate high-retention Instagram carousels (1080×1350) from a **prompt** or **
 
 ## Features
 
-- **Prompt mode** — describe a topic, get 5 mistake slides + 1 summary slide
+- **Prompt mode** — describe a topic or paste a URL; AI picks the best angle and writes 4–5 content slides + 1 summary
 - **URL mode** — paste a website; content is extracted and turned into carousel copy
 - **Live editor** — edit headlines, bullets, checklist, accent color, backgrounds
 - **Brand logo** — upload your logo; appears on every slide

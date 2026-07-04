@@ -7,7 +7,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import type { CarouselProject, Slide } from "@/lib/schema";
-import { DEFAULT_ACCENT } from "@/lib/schema";
+import { DEFAULT_ACCENT, normalizeProject } from "@/lib/schema";
 import { DEFAULT_BACKGROUNDS } from "@/lib/templates";
 import { clearProject, saveProject } from "@/lib/storage";
 import { CarouselEditor } from "./CarouselEditor";
@@ -20,7 +20,7 @@ function loadStoredProject(): CarouselProject | null {
   const stored = localStorage.getItem("neo-carousel-project");
   if (!stored) return null;
   try {
-    return JSON.parse(stored) as CarouselProject;
+    return normalizeProject(JSON.parse(stored) as CarouselProject);
   } catch {
     clearProject();
     return null;
@@ -169,10 +169,7 @@ export function HomeClient() {
                       : "border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white"
                   }`}
                 >
-                  {index + 1}.{" "}
-                  {slide.type === "mistake"
-                    ? slide.headlineBottom
-                    : slide.headlineBottom}
+                  {index + 1}. {slide.headlineBottom}
                 </button>
                 <div className="flex flex-col gap-0.5">
                   <button

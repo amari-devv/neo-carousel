@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     const pageText = await extractPageText(parsedUrl.toString());
     const project = await generateCarouselFromContent(
-      `Turn the following website content into an Instagram carousel for athletes. Paraphrase everything:\n\n${pageText}`,
+      `Turn the following website content into an Instagram carousel. Analyze the material first, choose the most compelling angle (hidden truths, tips, myths, lessons, mistakes — whatever fits best), then write the slides. Paraphrase everything:\n\n${pageText}`,
     );
 
     return NextResponse.json(project);

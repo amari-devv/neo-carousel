@@ -5,9 +5,8 @@ export const bulletSchema = z.object({
   text: z.string(),
 });
 
-export const mistakeSlideSchema = z.object({
-  type: z.literal("mistake"),
-  number: z.number().int().min(1),
+export const contentSlideSchema = z.object({
+  type: z.literal("content"),
   category: z.string(),
   headlineTop: z.string(),
   headlineBottom: z.string(),
@@ -28,7 +27,7 @@ export const summarySlideSchema = z.object({
 });
 
 export const slideSchema = z.discriminatedUnion("type", [
-  mistakeSlideSchema,
+  contentSlideSchema,
   summarySlideSchema,
 ]);
 
@@ -45,18 +44,20 @@ export const carouselProjectSchema = z.object({
   slides: z.array(slideSchema).min(1),
 });
 
+export const gptContentSlideSchema = z.object({
+  type: z.literal("content"),
+  category: z.string(),
+  headlineTop: z.string(),
+  headlineBottom: z.string(),
+  bullets: z.array(bulletSchema),
+});
+
 export const gptCarouselResponseSchema = z.object({
   title: z.string(),
+  carouselAngle: z.string().optional(),
   slides: z.array(
     z.union([
-      z.object({
-        type: z.literal("mistake"),
-        number: z.number(),
-        category: z.string(),
-        headlineTop: z.string(),
-        headlineBottom: z.string(),
-        bullets: z.array(bulletSchema),
-      }),
+      gptContentSlideSchema,
       z.object({
         type: z.literal("summary"),
         headlineTop: z.string(),
@@ -69,7 +70,7 @@ export const gptCarouselResponseSchema = z.object({
 });
 
 export type Bullet = z.infer<typeof bulletSchema>;
-export type MistakeSlide = z.infer<typeof mistakeSlideSchema>;
+export type ContentSlide = z.infer<typeof contentSlideSchema>;
 export type SummarySlide = z.infer<typeof summarySlideSchema>;
 export type Slide = z.infer<typeof slideSchema>;
 export type Brand = z.infer<typeof brandSchema>;
@@ -77,6 +78,14 @@ export type CarouselProject = z.infer<typeof carouselProjectSchema>;
 export type GptCarouselResponse = z.infer<typeof gptCarouselResponseSchema>;
 
 export const DEFAULT_ACCENT = "#E11D48";
+
+function normalizeBullets(bullets: Bullet[]): [Bullet, Bullet, Bullet] {
+  const normalized = bullets.slice(0, 3);
+  while (normalized.length < 3) {
+    normalized.push({ icon: "check", text: "Add bullet point" });
+  }
+  return normalized as [Bullet, Bullet, Bullet];
+}
 
 export function createProjectFromGpt(
   data: GptCarouselResponse,
@@ -88,14 +97,13 @@ export function createProjectFromGpt(
     const backgroundUrl = backgroundUrls[bgIndex % backgroundUrls.length];
     bgIndex++;
 
-    if (slide.type === "mistake") {
-      const bullets = slide.bullets.slice(0, 3);
-      while (bullets.length < 3) {
-        bullets.push({ icon: "check", text: "Add bullet point" });
-      }
+    if (slide.type === "content") {
       return {
-        ...slide,
-        bullets: bullets as [Bullet, Bullet, Bullet],
+        type: "content",
+        category: slide.category,
+        headlineTop: slide.headlineTop,
+        headlineBottom: slide.headlineBottom,
+        bullets: normalizeBullets(slide.bullets),
         backgroundUrl,
       };
     }
@@ -104,6 +112,7 @@ export function createProjectFromGpt(
     while (checklist.length < 5) {
       checklist.push("Add checklist item");
     }
+
     return {
       ...slide,
       checklist,
@@ -119,4 +128,32 @@ export function createProjectFromGpt(
     templateId: "athlete-viral-v1",
     slides,
   };
+}
+
+/** Normalize legacy projects stored with `mistake` slide type */
+export function normalizeProject(project: CarouselProject): CarouselProject {
+  const slides = (project.slides as Array<Slide | Record<string, unknown>>).map(
+    (slide) => {
+      if (slide.type !== "mistake") return slide as Slide;
+
+      return {
+        type: "content" as const,
+        category: String(slide.category ?? ""),
+        headlineTop: String(slide.headlineTop ?? ""),
+        headlineBottom: String(slide.headlineBottom ?? ""),
+        bullets: normalizeBullets(
+          Array.isArray(slide.bullets) ? (slide.bullets as Bullet[]) : [],
+        ),
+        backgroundUrl:
+          typeof slide.backgroundUrl === "string" ? slide.backgroundUrl : undefined,
+        cutoutUrls: Array.isArray(slide.cutoutUrls)
+          ? (slide.cutoutUrls as string[])
+          : undefined,
+        subjectUrl:
+          typeof slide.subjectUrl === "string" ? slide.subjectUrl : undefined,
+      };
+    },
+  );
+
+  return { ...project, slides };
 }
