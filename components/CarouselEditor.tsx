@@ -718,12 +718,22 @@ function SummaryFields({
         />
       ))}
       <Field
-        label="CTA text"
-        value={slide.ctaText ?? "SAVE THIS POST"}
+        label="CTA button text"
+        value={slide.ctaText ?? ""}
         onChange={(ctaText) =>
           onChange((s) => (s.type === "summary" ? { ...s, ctaText } : s))
         }
       />
+      <Field
+        label="CTA subtitle (optional)"
+        value={slide.ctaSubtitle ?? ""}
+        onChange={(ctaSubtitle) =>
+          onChange((s) => (s.type === "summary" ? { ...s, ctaSubtitle } : s))
+        }
+      />
+      <p className="text-xs text-zinc-600">
+        Leave either field blank to hide it on the slide.
+      </p>
     </section>
   );
 }

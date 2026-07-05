@@ -39,15 +39,26 @@ export function HomeClient() {
   }, [project]);
 
   useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+
     function updateScale() {
-      if (!previewRef.current) return;
-      const width = previewRef.current.clientWidth - 32;
-      setScale(Math.min(width / 1080, 0.45));
+      const node = previewRef.current;
+      if (!node) return;
+      const width = node.clientWidth - 24;
+      const height = node.clientHeight - 24;
+      if (width <= 0 || height <= 0) return;
+      setScale(Math.min(width / 1080, height / 1350, 0.42));
     }
 
     updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(el);
     window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScale);
+    };
   }, [project]);
 
   const handleGenerated = useCallback((newProject: CarouselProject) => {
@@ -168,7 +179,7 @@ export function HomeClient() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-zinc-950">
       <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
         <div className="flex items-center gap-4">
           <button
@@ -190,7 +201,7 @@ export function HomeClient() {
         <ExportButton project={project} />
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <aside className="w-56 shrink-0 overflow-y-auto border-r border-zinc-800 p-4">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Slides
@@ -237,26 +248,36 @@ export function HomeClient() {
 
         <main
           ref={previewRef}
-          className="flex flex-1 items-center justify-center overflow-auto bg-zinc-900/50 p-8"
+          className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-zinc-900/50 p-3"
         >
           {activeSlide && (
             <div
+              className="relative shrink-0"
               style={{
-                transform: `scale(${scale})`,
-                transformOrigin: "center center",
+                width: Math.round(1080 * scale),
+                height: Math.round(1350 * scale),
               }}
             >
-              <SlideCanvas
-                slide={activeSlide}
-                brand={project.brand}
-                projectDefaultStyle={project.defaultStyle}
-                editable
-                selectedIconId={selectedIconId}
-                onPlacedIconMove={(id, x, y) =>
-                  handlePlacedIconMove(activeIndex, id, x, y)
-                }
-                onPlacedIconSelect={setSelectedIconId}
-              />
+              <div
+                className="absolute left-0 top-0 origin-top-left"
+                style={{
+                  transform: `scale(${scale})`,
+                  width: 1080,
+                  height: 1350,
+                }}
+              >
+                <SlideCanvas
+                  slide={activeSlide}
+                  brand={project.brand}
+                  projectDefaultStyle={project.defaultStyle}
+                  editable
+                  selectedIconId={selectedIconId}
+                  onPlacedIconMove={(id, x, y) =>
+                    handlePlacedIconMove(activeIndex, id, x, y)
+                  }
+                  onPlacedIconSelect={setSelectedIconId}
+                />
+              </div>
             </div>
           )}
         </main>

@@ -59,6 +59,7 @@ export const summarySlideSchema = z.object({
   headlineBottom: z.string(),
   checklist: z.array(z.string()).min(3).max(7),
   ctaText: z.string().optional(),
+  ctaSubtitle: z.string().optional(),
   ...slideBaseFields,
 });
 
@@ -102,6 +103,7 @@ export const gptCarouselResponseSchema = z.object({
         headlineBottom: z.string(),
         checklist: z.array(z.string()),
         ctaText: z.string().optional(),
+        ctaSubtitle: z.string().optional(),
         imagePrompt: z.string().optional(),
       }),
     ]),
@@ -243,6 +245,7 @@ function normalizeSummarySlide(slide: Record<string, unknown>): SummarySlide {
       ? (slide.checklist as string[])
       : [],
     ctaText: typeof slide.ctaText === "string" ? slide.ctaText : undefined,
+    ctaSubtitle: typeof slide.ctaSubtitle === "string" ? slide.ctaSubtitle : undefined,
     backgroundUrl:
       typeof slide.backgroundUrl === "string" ? slide.backgroundUrl : undefined,
     subjectUrl:

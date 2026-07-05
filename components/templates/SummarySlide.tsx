@@ -26,7 +26,9 @@ export function SummarySlideTemplate({
   onPlacedIconSelect,
 }: SummarySlideTemplateProps) {
   const accent = brand?.accentColor ?? DEFAULT_ACCENT;
-  const ctaText = slide.ctaText ?? "SAVE THIS POST";
+  const ctaText = slide.ctaText?.trim() ?? "";
+  const ctaSubtitle = slide.ctaSubtitle?.trim() ?? "";
+  const showCta = ctaText.length > 0 || ctaSubtitle.length > 0;
   const checklist = slide.checklist.filter((item) => item.trim().length > 0);
   const placedIcons = (slide.placedIcons ?? []).filter(
     (icon) => icon.icon !== "none",
@@ -131,18 +133,24 @@ export function SummarySlideTemplate({
           </div>
         )}
 
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className="flex items-center gap-3 rounded-full px-10 py-4 font-bold tracking-wide"
-            style={{ backgroundColor: accent, fontSize: 28 }}
-          >
-            <Bookmark className="h-7 w-7 fill-white" />
-            {ctaText}
+        {showCta && (
+          <div className="flex flex-col items-center gap-3">
+            {ctaText.length > 0 && (
+              <div
+                className="flex items-center gap-3 rounded-full px-10 py-4 font-bold tracking-wide"
+                style={{ backgroundColor: accent, fontSize: 28 }}
+              >
+                <Bookmark className="h-7 w-7 fill-white" />
+                {ctaText}
+              </div>
+            )}
+            {ctaSubtitle.length > 0 && (
+              <p className="text-[22px] font-medium tracking-widest text-white/70">
+                {ctaSubtitle}
+              </p>
+            )}
           </div>
-          <p className="text-[22px] font-medium tracking-widest text-white/70">
-            SEND IT TO A TEAMMATE
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
