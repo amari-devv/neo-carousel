@@ -1,9 +1,45 @@
 import { z } from "zod";
 
+export const slideStyleSchema = z.object({
+  headlineTopSize: z.number().min(24).max(120).optional(),
+  headlineBottomSize: z.number().min(32).max(160).optional(),
+  headlineGap: z.number().min(0).max(48).optional(),
+  bulletSize: z.number().min(14).max(40).optional(),
+  bulletGap: z.number().min(4).max(40).optional(),
+  contentBottomPadding: z.number().min(20).max(120).optional(),
+  contentSidePadding: z.number().min(20).max(80).optional(),
+  categorySize: z.number().min(12).max(36).optional(),
+  checklistSize: z.number().min(14).max(40).optional(),
+});
+
+export const placedIconSchema = z.object({
+  id: z.string(),
+  icon: z.string(),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  size: z.number().min(32).max(120).optional(),
+});
+
+export const hookAngleSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  sampleHeadline: z.string(),
+});
+
 export const bulletSchema = z.object({
   icon: z.string(),
   text: z.string(),
 });
+
+const slideBaseFields = {
+  style: slideStyleSchema.optional(),
+  placedIcons: z.array(placedIconSchema).max(8).optional(),
+  /** @deprecated use placedIcons */
+  slideIcons: z.array(z.string()).max(4).optional(),
+  backgroundUrl: z.string().optional(),
+  subjectUrl: z.string().optional(),
+};
 
 export const contentSlideSchema = z.object({
   type: z.literal("content"),
@@ -11,13 +47,10 @@ export const contentSlideSchema = z.object({
   headlineTop: z.string(),
   headlineBottom: z.string(),
   bullets: z.array(bulletSchema).max(3),
-  backgroundUrl: z.string().optional(),
-  /** @deprecated use cutoutLeftUrl / cutoutRightUrl */
   cutoutUrls: z.array(z.string()).max(2).optional(),
   cutoutLeftUrl: z.string().optional(),
   cutoutRightUrl: z.string().optional(),
-  subjectUrl: z.string().optional(),
-  slideIcons: z.array(z.string()).max(4).optional(),
+  ...slideBaseFields,
 });
 
 export const summarySlideSchema = z.object({
@@ -26,9 +59,7 @@ export const summarySlideSchema = z.object({
   headlineBottom: z.string(),
   checklist: z.array(z.string()).min(3).max(7),
   ctaText: z.string().optional(),
-  backgroundUrl: z.string().optional(),
-  subjectUrl: z.string().optional(),
-  slideIcons: z.array(z.string()).max(4).optional(),
+  ...slideBaseFields,
 });
 
 export const slideSchema = z.discriminatedUnion("type", [
@@ -45,6 +76,7 @@ export const carouselProjectSchema = z.object({
   id: z.string(),
   title: z.string(),
   brand: brandSchema.optional(),
+  defaultStyle: slideStyleSchema.optional(),
   templateId: z.literal("athlete-viral-v1"),
   slides: z.array(slideSchema).min(1),
 });
@@ -55,6 +87,7 @@ export const gptContentSlideSchema = z.object({
   headlineTop: z.string(),
   headlineBottom: z.string(),
   bullets: z.array(bulletSchema),
+  imagePrompt: z.string().optional(),
 });
 
 export const gptCarouselResponseSchema = z.object({
@@ -69,11 +102,19 @@ export const gptCarouselResponseSchema = z.object({
         headlineBottom: z.string(),
         checklist: z.array(z.string()),
         ctaText: z.string().optional(),
+        imagePrompt: z.string().optional(),
       }),
     ]),
   ),
 });
 
+export const hookAnglesResponseSchema = z.object({
+  hooks: z.array(hookAngleSchema).min(3).max(6),
+});
+
+export type SlideStyle = z.infer<typeof slideStyleSchema>;
+export type PlacedIcon = z.infer<typeof placedIconSchema>;
+export type HookAngle = z.infer<typeof hookAngleSchema>;
 export type Bullet = z.infer<typeof bulletSchema>;
 export type ContentSlide = z.infer<typeof contentSlideSchema>;
 export type SummarySlide = z.infer<typeof summarySlideSchema>;
@@ -93,6 +134,28 @@ function normalizeBullets(bullets: Bullet[]): Bullet[] {
 
 export function visibleBullets(bullets: Bullet[]): Bullet[] {
   return bullets.filter((bullet) => bullet.text.trim().length > 0);
+}
+
+export function normalizePlacedIcons(
+  slide: Record<string, unknown>,
+): PlacedIcon[] {
+  if (Array.isArray(slide.placedIcons)) {
+    return slide.placedIcons as PlacedIcon[];
+  }
+
+  if (Array.isArray(slide.slideIcons)) {
+    return (slide.slideIcons as string[])
+      .filter((icon) => icon !== "none")
+      .map((icon, index) => ({
+        id: `legacy-${index}-${icon}`,
+        icon,
+        x: 86,
+        y: 38 + index * 14,
+        size: 56,
+      }));
+  }
+
+  return [];
 }
 
 export function createProjectFromGpt(
@@ -163,9 +226,32 @@ function normalizeContentSlide(slide: Record<string, unknown>): ContentSlide {
         : cutoutUrls[1],
     subjectUrl:
       typeof slide.subjectUrl === "string" ? slide.subjectUrl : undefined,
-    slideIcons: Array.isArray(slide.slideIcons)
-      ? (slide.slideIcons as string[])
-      : undefined,
+    placedIcons: normalizePlacedIcons(slide),
+    style:
+      slide.style && typeof slide.style === "object"
+        ? (slide.style as SlideStyle)
+        : undefined,
+  };
+}
+
+function normalizeSummarySlide(slide: Record<string, unknown>): SummarySlide {
+  return {
+    type: "summary",
+    headlineTop: String(slide.headlineTop ?? ""),
+    headlineBottom: String(slide.headlineBottom ?? ""),
+    checklist: Array.isArray(slide.checklist)
+      ? (slide.checklist as string[])
+      : [],
+    ctaText: typeof slide.ctaText === "string" ? slide.ctaText : undefined,
+    backgroundUrl:
+      typeof slide.backgroundUrl === "string" ? slide.backgroundUrl : undefined,
+    subjectUrl:
+      typeof slide.subjectUrl === "string" ? slide.subjectUrl : undefined,
+    placedIcons: normalizePlacedIcons(slide),
+    style:
+      slide.style && typeof slide.style === "object"
+        ? (slide.style as SlideStyle)
+        : undefined,
   };
 }
 
@@ -179,6 +265,10 @@ export function normalizeProject(project: CarouselProject): CarouselProject {
 
       if (slide.type === "content") {
         return normalizeContentSlide(slide as Record<string, unknown>);
+      }
+
+      if (slide.type === "summary") {
+        return normalizeSummarySlide(slide as Record<string, unknown>);
       }
 
       return slide as Slide;

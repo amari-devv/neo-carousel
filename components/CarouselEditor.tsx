@@ -1,13 +1,18 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import type { Bullet, CarouselProject, Slide } from "@/lib/schema";
+import { useState } from "react";
+import { Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import type { Bullet, CarouselProject, PlacedIcon, Slide } from "@/lib/schema";
 import { DEFAULT_ACCENT } from "@/lib/schema";
+import type { ImageTarget } from "@/lib/openai";
 import { IconPicker, IconPickerGrid } from "./IconPicker";
+import { SlideStyleControls } from "./SlideStyleControls";
 
 type CarouselEditorProps = {
   project: CarouselProject;
   activeIndex: number;
+  selectedIconId: string | null;
+  onPlacedIconSelect: (id: string | null) => void;
   onProjectChange: (updater: (prev: CarouselProject) => CarouselProject) => void;
   onSlideChange: (index: number, updater: (slide: Slide) => Slide) => void;
   onLogoUpload: (file: File) => void;
@@ -27,6 +32,8 @@ type CarouselEditorProps = {
 export function CarouselEditor({
   project,
   activeIndex,
+  selectedIconId,
+  onPlacedIconSelect,
   onProjectChange,
   onSlideChange,
   onLogoUpload,
@@ -36,6 +43,7 @@ export function CarouselEditor({
   onImageRemove,
 }: CarouselEditorProps) {
   const slide = project.slides[activeIndex];
+  const slideStyle = slide.style ?? {};
 
   return (
     <div className="space-y-6">
@@ -88,6 +96,16 @@ export function CarouselEditor({
         />
       </section>
 
+      <SlideStyleControls
+        style={slideStyle}
+        onChange={(style) =>
+          onSlideChange(activeIndex, (s) => ({ ...s, style }))
+        }
+        onReset={() =>
+          onSlideChange(activeIndex, (s) => ({ ...s, style: undefined }))
+        }
+      />
+
       <ImageField
         label="Background"
         hasImage={Boolean(slide.backgroundUrl)}
@@ -136,8 +154,15 @@ export function CarouselEditor({
         </>
       )}
 
-      <SlideIconsSection
+      <AiImageSection
         slide={slide}
+        onSlideChange={(updater) => onSlideChange(activeIndex, updater)}
+      />
+
+      <PlacedIconsSection
+        slide={slide}
+        selectedIconId={selectedIconId}
+        onSelect={onPlacedIconSelect}
         onChange={(updater) => onSlideChange(activeIndex, updater)}
       />
 
@@ -202,14 +227,140 @@ function ImageField({
   );
 }
 
-function SlideIconsSection({
+function AiImageSection({
   slide,
+  onSlideChange,
+}: {
+  slide: Slide;
+  onSlideChange: (updater: (slide: Slide) => Slide) => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState<ImageTarget | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const defaultPrompt = `${slide.headlineTop} ${slide.headlineBottom} athletic cinematic`;
+
+  async function generate(
+    target: ImageTarget,
+    field: "backgroundUrl" | "subjectUrl" | "cutoutLeftUrl" | "cutoutRightUrl",
+  ) {
+    setLoading(target);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt.trim() || defaultPrompt,
+          target,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Image generation failed");
+      }
+
+      onSlideChange((s) => ({ ...s, [field]: data.imageUrl as string }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image generation failed");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  return (
+    <section>
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        AI images (GPT Image)
+      </h2>
+      <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder={defaultPrompt}
+        rows={2}
+        className="mb-3 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-red-500 focus:outline-none"
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <AiImageButton
+          label="Background"
+          loading={loading === "background"}
+          onClick={() => generate("background", "backgroundUrl")}
+        />
+        <AiImageButton
+          label="Subject"
+          loading={loading === "subject"}
+          onClick={() => generate("subject", "subjectUrl")}
+        />
+        {slide.type === "content" && (
+          <>
+            <AiImageButton
+              label="Left circle"
+              loading={loading === "cutout"}
+              onClick={() => generate("cutout", "cutoutLeftUrl")}
+            />
+            <AiImageButton
+              label="Right circle"
+              loading={loading === "cutout"}
+              onClick={() => generate("cutout", "cutoutRightUrl")}
+            />
+          </>
+        )}
+      </div>
+      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+    </section>
+  );
+}
+
+function AiImageButton({
+  label,
+  loading,
+  onClick,
+}: {
+  label: string;
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="flex items-center justify-center gap-2 rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 transition hover:border-red-500 disabled:opacity-50"
+    >
+      {loading ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Sparkles className="h-3 w-3" />
+      )}
+      {label}
+    </button>
+  );
+}
+
+function PlacedIconsSection({
+  slide,
+  selectedIconId,
+  onSelect,
   onChange,
 }: {
   slide: Slide;
+  selectedIconId: string | null;
+  onSelect: (id: string | null) => void;
   onChange: (updater: (slide: Slide) => Slide) => void;
 }) {
-  const icons = slide.slideIcons ?? [];
+  const icons = slide.placedIcons ?? [];
+  const selected = icons.find((icon) => icon.id === selectedIconId);
+
+  function updateIcon(id: string, patch: Partial<PlacedIcon>) {
+    onChange((s) => ({
+      ...s,
+      placedIcons: (s.placedIcons ?? []).map((icon) =>
+        icon.id === id ? { ...icon, ...patch } : icon,
+      ),
+    }));
+  }
 
   return (
     <section>
@@ -217,15 +368,23 @@ function SlideIconsSection({
         <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Slide icons
         </h2>
-        {icons.length < 4 && (
+        {icons.length < 8 && (
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
+              const newIcon: PlacedIcon = {
+                id: crypto.randomUUID(),
+                icon: "swipe",
+                x: 50,
+                y: 50,
+                size: 56,
+              };
               onChange((s) => ({
                 ...s,
-                slideIcons: [...(s.slideIcons ?? []), "swipe"],
-              }))
-            }
+                placedIcons: [...(s.placedIcons ?? []), newIcon],
+              }));
+              onSelect(newIcon.id);
+            }}
             className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300"
           >
             <Plus className="h-3 w-3" />
@@ -234,53 +393,131 @@ function SlideIconsSection({
         )}
       </div>
       <p className="mb-3 text-xs text-zinc-600">
-        Decorative icons shown on the right side of the slide.
+        Drag icons on the slide preview, or fine-tune position below.
       </p>
+
       {icons.length === 0 ? (
         <IconPickerGrid
           label="Pick an icon to add"
           value="swipe"
-          onChange={(icon) =>
-            onChange((s) => ({ ...s, slideIcons: icon === "none" ? [] : [icon] }))
-          }
+          onChange={(icon) => {
+            if (icon === "none") return;
+            const newIcon: PlacedIcon = {
+              id: crypto.randomUUID(),
+              icon,
+              x: 86,
+              y: 50,
+              size: 56,
+            };
+            onChange((s) => ({ ...s, placedIcons: [newIcon] }));
+            onSelect(newIcon.id);
+          }}
         />
       ) : (
         <div className="space-y-3">
           {icons.map((icon, i) => (
-            <div key={i} className="flex items-end gap-2">
-              <div className="flex-1">
-                <IconPicker
-                  label={`Icon ${i + 1}`}
-                  value={icon}
-                  onChange={(next) =>
-                    onChange((s) => {
-                      const nextIcons = [...(s.slideIcons ?? [])];
-                      nextIcons[i] = next;
-                      return {
-                        ...s,
-                        slideIcons: nextIcons.filter((id) => id !== "none"),
-                      };
-                    })
-                  }
-                />
+            <div
+              key={icon.id}
+              className={`space-y-2 rounded-lg border p-3 ${
+                selectedIconId === icon.id
+                  ? "border-red-500 bg-red-500/5"
+                  : "border-zinc-800"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => onSelect(icon.id)}
+                  className="text-xs text-zinc-400 hover:text-white"
+                >
+                  Icon {i + 1} {selectedIconId === icon.id ? "(selected)" : ""}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange((s) => ({
+                      ...s,
+                      placedIcons: (s.placedIcons ?? []).filter(
+                        (item) => item.id !== icon.id,
+                      ),
+                    }));
+                    if (selectedIconId === icon.id) onSelect(null);
+                  }}
+                  className="rounded-lg border border-zinc-700 p-1.5 text-zinc-400 hover:border-red-500 hover:text-red-400"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  onChange((s) => ({
-                    ...s,
-                    slideIcons: (s.slideIcons ?? []).filter((_, idx) => idx !== i),
-                  }))
+              <IconPicker
+                label="Icon"
+                value={icon.icon}
+                onChange={(next) =>
+                  updateIcon(icon.id, { icon: next === "none" ? "swipe" : next })
                 }
-                className="mb-0.5 rounded-lg border border-zinc-700 p-2 text-zinc-400 hover:border-red-500 hover:text-red-400"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              />
+              <SliderControl
+                label="X position"
+                value={icon.x}
+                min={0}
+                max={100}
+                onChange={(x) => updateIcon(icon.id, { x })}
+              />
+              <SliderControl
+                label="Y position"
+                value={icon.y}
+                min={0}
+                max={100}
+                onChange={(y) => updateIcon(icon.id, { y })}
+              />
+              <SliderControl
+                label="Size"
+                value={icon.size ?? 56}
+                min={32}
+                max={120}
+                onChange={(size) => updateIcon(icon.id, { size })}
+              />
             </div>
           ))}
         </div>
       )}
+
+      {selected && (
+        <p className="mt-2 text-xs text-zinc-500">
+          Tip: click and drag the selected icon directly on the slide preview.
+        </p>
+      )}
     </section>
+  );
+}
+
+function SliderControl({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="block">
+      <div className="mb-1 flex items-center justify-between text-xs text-zinc-500">
+        <span>{label}</span>
+        <span>{Math.round(value)}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-red-500"
+      />
+    </label>
   );
 }
 

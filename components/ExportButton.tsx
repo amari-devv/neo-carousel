@@ -91,7 +91,11 @@ export function ExportButton({ project }: ExportButtonProps) {
       >
         {project.slides.map((slide, index) => (
           <div key={index} data-slide-export>
-            <SlideCanvas slide={slide} brand={project.brand} />
+            <SlideCanvas
+              slide={slide}
+              brand={project.brand}
+              projectDefaultStyle={project.defaultStyle}
+            />
           </div>
         ))}
       </div>

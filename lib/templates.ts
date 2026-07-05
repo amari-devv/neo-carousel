@@ -68,3 +68,25 @@ Rules:
 - Summary checklist: exactly 5 items that recap the carousel's key takeaways.
 - Paraphrase source material; never copy verbatim.
 - Keep copy scroll-stopping, clean, and credible — not clickbait that misrepresents the source.`;
+
+export const HOOK_ANGLES_PROMPT = `You analyze source content and propose distinct Instagram carousel hook angles.
+
+Return JSON:
+{
+  "hooks": [
+    {
+      "id": "hook-1",
+      "title": "The Hidden Truth Angle",
+      "description": "Frame the carousel as secrets insiders know but beginners miss",
+      "sampleHeadline": "THE HIDDEN TRUTH ABOUT RECOVERY"
+    }
+  ]
+}
+
+Rules:
+- Return exactly 5 hooks.
+- Each hook must be meaningfully different (e.g. myths busted, step-by-step system, controversial take, beginner mistakes, elite secrets, science-backed facts).
+- Titles are short and punchy (3–6 words).
+- Descriptions explain the creative direction in one sentence.
+- sampleHeadline is an ALL CAPS example headline for slide 1.
+- Base every hook on the actual source content — no generic filler.`;

@@ -1,33 +1,44 @@
 /* eslint-disable @next/next/no-img-element -- raw img tags required for html-to-image export */
-import type { Brand, ContentSlide } from "@/lib/schema";
+import type { Brand, ContentSlide, SlideStyle } from "@/lib/schema";
 import { DEFAULT_ACCENT, visibleBullets } from "@/lib/schema";
-import { CarouselIcon } from "@/lib/icons";
+import {
+  headlineBottomDefaultSize,
+  resolveSlideStyle,
+} from "@/lib/slide-style";
 import { BulletRow } from "./shared/BulletRow";
 import { CircleCutout } from "./shared/CircleCutout";
 import { LogoDivider } from "./shared/LogoDivider";
+import { PlacedIconsLayer } from "./shared/PlacedIconsLayer";
 
 type ContentSlideTemplateProps = {
   slide: ContentSlide;
   brand?: Brand;
+  projectDefaultStyle?: SlideStyle;
+  editable?: boolean;
+  selectedIconId?: string | null;
+  onPlacedIconMove?: (id: string, x: number, y: number) => void;
+  onPlacedIconSelect?: (id: string | null) => void;
 };
 
 export function ContentSlideTemplate({
   slide,
   brand,
+  projectDefaultStyle,
+  editable = false,
+  selectedIconId,
+  onPlacedIconMove,
+  onPlacedIconSelect,
 }: ContentSlideTemplateProps) {
   const accent = brand?.accentColor ?? DEFAULT_ACCENT;
   const bullets = visibleBullets(slide.bullets);
-  const slideIcons = (slide.slideIcons ?? []).filter((icon) => icon !== "none");
-
-  const headlineBottomSize =
-    slide.headlineBottom.length > 18 ? "text-[88px]" : "text-[110px]";
-
+  const placedIcons = (slide.placedIcons ?? []).filter(
+    (icon) => icon.icon !== "none",
+  );
+  const style = resolveSlideStyle(slide.style, projectDefaultStyle);
   const headlineOnly = bullets.length === 0;
-  const headlineBottomClass = headlineOnly
-    ? slide.headlineBottom.length > 18
-      ? "text-[96px]"
-      : "text-[120px]"
-    : headlineBottomSize;
+  const bottomSize =
+    style.headlineBottomSize ||
+    headlineBottomDefaultSize(slide.headlineBottom, headlineOnly);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-black text-white">
@@ -45,8 +56,12 @@ export function ContentSlideTemplate({
 
       {slide.category && (
         <div
-          className="absolute left-10 top-10 rounded border px-4 py-1.5 text-[22px] font-semibold tracking-[0.2em]"
-          style={{ borderColor: accent, color: accent }}
+          className="absolute left-10 top-10 rounded border px-4 py-1.5 font-semibold tracking-[0.2em]"
+          style={{
+            borderColor: accent,
+            color: accent,
+            fontSize: style.categorySize,
+          }}
         >
           {slide.category}
         </div>
@@ -76,21 +91,14 @@ export function ContentSlideTemplate({
         </div>
       )}
 
-      {slideIcons.length > 0 && (
-        <div className="absolute right-10 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-4">
-          {slideIcons.map((icon, i) => (
-            <div
-              key={`${icon}-${i}`}
-              className={`flex items-center justify-center shadow-lg ${
-                icon === "swipe" ? "rounded-full px-5 py-3" : "rounded-full px-4 py-3"
-              }`}
-              style={{ backgroundColor: accent, border: "3px solid white" }}
-            >
-              <CarouselIcon icon={icon} size="lg" className="text-white" />
-            </div>
-          ))}
-        </div>
-      )}
+      <PlacedIconsLayer
+        icons={placedIcons}
+        brand={brand}
+        editable={editable}
+        selectedIconId={selectedIconId}
+        onSelect={onPlacedIconSelect}
+        onMove={onPlacedIconMove}
+      />
 
       <div
         className="absolute bottom-0 left-0 right-0 h-[55%]"
@@ -99,36 +107,56 @@ export function ContentSlideTemplate({
         }}
       />
 
-      <div className="absolute bottom-0 left-0 right-0 z-10 px-12 pb-14 pt-8">
+      <div
+        className="absolute bottom-0 left-0 right-0 z-10 pt-8"
+        style={{
+          paddingBottom: style.contentBottomPadding,
+          paddingLeft: style.contentSidePadding,
+          paddingRight: style.contentSidePadding,
+        }}
+      >
         <div className="mb-6">
           <LogoDivider brand={brand} />
         </div>
 
-        <div className={`text-center ${headlineOnly ? "mb-4" : "mb-8"}`}>
+        <div
+          className="text-center"
+          style={{
+            marginBottom: headlineOnly ? 16 : 32,
+            display: "flex",
+            flexDirection: "column",
+            gap: style.headlineGap,
+          }}
+        >
           <p
-            className={`font-[family-name:var(--font-bebas)] leading-none tracking-wide text-white/90 ${
-              headlineOnly ? "text-[64px]" : "text-[56px]"
-            }`}
-            style={{ textShadow: "0 4px 20px rgba(0,0,0,0.8)" }}
+            className="font-[family-name:var(--font-bebas)] leading-none tracking-wide text-white/90"
+            style={{
+              fontSize: style.headlineTopSize,
+              textShadow: "0 4px 20px rgba(0,0,0,0.8)",
+            }}
           >
             {slide.headlineTop}
           </p>
           <p
-            className={`font-[family-name:var(--font-bebas)] ${headlineBottomClass} leading-[0.95] tracking-wide`}
-            style={{ textShadow: "0 4px 30px rgba(0,0,0,0.9)" }}
+            className="font-[family-name:var(--font-bebas)] leading-[0.95] tracking-wide"
+            style={{
+              fontSize: bottomSize,
+              textShadow: "0 4px 30px rgba(0,0,0,0.9)",
+            }}
           >
             {slide.headlineBottom}
           </p>
         </div>
 
         {bullets.length > 0 && (
-          <div className="space-y-4 px-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: style.bulletGap }}>
             {bullets.map((bullet, i) => (
               <BulletRow
                 key={i}
                 icon={bullet.icon}
                 text={bullet.text}
                 brand={brand}
+                fontSize={style.bulletSize}
               />
             ))}
           </div>

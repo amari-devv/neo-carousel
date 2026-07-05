@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateCarouselFromContent } from "@/lib/openai";
+import { hookAngleSchema } from "@/lib/schema";
 import { extractPageText } from "@/lib/scrape";
 
 export const maxDuration = 30;
@@ -8,9 +9,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const url = typeof body.url === "string" ? body.url.trim() : "";
+    const hookResult = hookAngleSchema.safeParse(body.hook);
 
     if (!url) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    }
+
+    if (!hookResult.success) {
+      return NextResponse.json({ error: "Valid hook selection is required" }, { status: 400 });
     }
 
     let parsedUrl: URL;
@@ -26,7 +32,8 @@ export async function POST(request: Request) {
 
     const pageText = await extractPageText(parsedUrl.toString());
     const project = await generateCarouselFromContent(
-      `Turn the following website content into an Instagram carousel. Analyze the material first, choose the most compelling angle (hidden truths, tips, myths, lessons, mistakes — whatever fits best), then write the slides. Paraphrase everything:\n\n${pageText}`,
+      `Turn the following website content into an Instagram carousel. Paraphrase everything:\n\n${pageText}`,
+      hookResult.data,
     );
 
     return NextResponse.json(project);

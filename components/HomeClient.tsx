@@ -30,6 +30,7 @@ function loadStoredProject(): CarouselProject | null {
 export function HomeClient() {
   const [project, setProject] = useState<CarouselProject | null>(loadStoredProject);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
 
@@ -141,6 +142,18 @@ export function HomeClient() {
     [updateSlide],
   );
 
+  const handlePlacedIconMove = useCallback(
+    (index: number, id: string, x: number, y: number) => {
+      updateSlide(index, (slide) => ({
+        ...slide,
+        placedIcons: (slide.placedIcons ?? []).map((icon) =>
+          icon.id === id ? { ...icon, x, y } : icon,
+        ),
+      }));
+    },
+    [updateSlide],
+  );
+
   const activeSlide = useMemo(
     () => (project ? project.slides[activeIndex] : null),
     [project, activeIndex],
@@ -187,7 +200,10 @@ export function HomeClient() {
               <div key={index} className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setActiveIndex(index)}
+                  onClick={() => {
+                    setActiveIndex(index);
+                    setSelectedIconId(null);
+                  }}
                   className={`flex-1 rounded-lg border px-3 py-2 text-left text-sm transition ${
                     activeIndex === index
                       ? "border-red-500 bg-red-500/10 text-white"
@@ -230,15 +246,27 @@ export function HomeClient() {
                 transformOrigin: "center center",
               }}
             >
-              <SlideCanvas slide={activeSlide} brand={project.brand} />
+              <SlideCanvas
+                slide={activeSlide}
+                brand={project.brand}
+                projectDefaultStyle={project.defaultStyle}
+                editable
+                selectedIconId={selectedIconId}
+                onPlacedIconMove={(id, x, y) =>
+                  handlePlacedIconMove(activeIndex, id, x, y)
+                }
+                onPlacedIconSelect={setSelectedIconId}
+              />
             </div>
           )}
         </main>
 
-        <aside className="w-80 shrink-0 overflow-y-auto border-l border-zinc-800 p-4">
+        <aside className="w-96 shrink-0 overflow-y-auto border-l border-zinc-800 p-4">
           <CarouselEditor
             project={project}
             activeIndex={activeIndex}
+            selectedIconId={selectedIconId}
+            onPlacedIconSelect={setSelectedIconId}
             onProjectChange={updateProject}
             onSlideChange={updateSlide}
             onLogoUpload={handleLogoUpload}

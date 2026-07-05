@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import type { Brand, Slide } from "@/lib/schema";
+import type { Brand, Slide, SlideStyle } from "@/lib/schema";
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "@/lib/templates";
 import { ContentSlideTemplate } from "./templates/ContentSlide";
 import { SummarySlideTemplate } from "./templates/SummarySlide";
@@ -9,15 +9,37 @@ import { SummarySlideTemplate } from "./templates/SummarySlide";
 type SlideCanvasProps = {
   slide: Slide;
   brand?: Brand;
+  projectDefaultStyle?: SlideStyle;
   className?: string;
+  editable?: boolean;
+  selectedIconId?: string | null;
+  onPlacedIconMove?: (id: string, x: number, y: number) => void;
+  onPlacedIconSelect?: (id: string | null) => void;
 };
 
-function isContentSlide(slide: Slide): slide is Extract<Slide, { type: "content" }> {
-  return slide.type === "content";
-}
-
 export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
-  function SlideCanvas({ slide, brand, className = "" }, ref) {
+  function SlideCanvas(
+    {
+      slide,
+      brand,
+      projectDefaultStyle,
+      className = "",
+      editable = false,
+      selectedIconId,
+      onPlacedIconMove,
+      onPlacedIconSelect,
+    },
+    ref,
+  ) {
+    const shared = {
+      brand,
+      projectDefaultStyle,
+      editable,
+      selectedIconId,
+      onPlacedIconMove,
+      onPlacedIconSelect,
+    };
+
     return (
       <div
         ref={ref}
@@ -28,10 +50,10 @@ export const SlideCanvas = forwardRef<HTMLDivElement, SlideCanvasProps>(
           flexShrink: 0,
         }}
       >
-        {isContentSlide(slide) ? (
-          <ContentSlideTemplate slide={slide} brand={brand} />
+        {slide.type === "content" ? (
+          <ContentSlideTemplate slide={slide} {...shared} />
         ) : (
-          <SummarySlideTemplate slide={slide} brand={brand} />
+          <SummarySlideTemplate slide={slide} {...shared} />
         )}
       </div>
     );

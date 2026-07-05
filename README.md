@@ -4,7 +4,10 @@ Generate high-retention Instagram carousels (1080×1350) from a **prompt** or **
 
 ## Features
 
-- **Prompt mode** — describe a topic or paste a URL; AI picks the best angle and writes 4–5 content slides + 1 summary
+- **Prompt / URL mode** — pick a hook angle from AI suggestions, then generate slides
+- **Canva-style controls** — per-slide typography and spacing sliders
+- **Positionable icons** — drag icons anywhere on the slide or use X/Y/size sliders
+- **AI images** — generate backgrounds, subjects, and cutouts via GPT Image (`gpt-image-1`)
 - **URL mode** — paste a website; content is extracted and turned into carousel copy
 - **Live editor** — edit headlines, bullets, checklist, accent color, backgrounds
 - **Brand logo** — upload your logo; appears on every slide

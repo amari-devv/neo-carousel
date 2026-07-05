@@ -6,9 +6,10 @@ type BulletRowProps = {
   icon: string;
   text: string;
   brand?: Brand;
+  fontSize?: number;
 };
 
-export function BulletRow({ icon, text, brand }: BulletRowProps) {
+export function BulletRow({ icon, text, brand, fontSize = 26 }: BulletRowProps) {
   const accent = brand?.accentColor ?? DEFAULT_ACCENT;
   const showIcon = icon !== "none";
 
@@ -24,7 +25,10 @@ export function BulletRow({ icon, text, brand }: BulletRowProps) {
       ) : (
         <div className="w-10 shrink-0" />
       )}
-      <p className="pt-1.5 text-[26px] leading-snug font-medium text-white/95">
+      <p
+        className="pt-1.5 leading-snug font-medium text-white/95"
+        style={{ fontSize }}
+      >
         {text}
       </p>
     </div>
